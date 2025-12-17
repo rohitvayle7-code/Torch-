@@ -10,6 +10,14 @@ export interface AmbienceConfig {
   description?: string;
 }
 
+export interface Preset {
+  id: string;
+  name: string;
+  iconPath: string; // SVG path d
+  config: AmbienceConfig;
+  forcedMode?: LightMode;
+}
+
 export interface TorchState {
   isOn: boolean;
   mode: LightMode;

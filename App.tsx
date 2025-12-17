@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PowerButton } from './components/PowerButton';
 import { ControlPanel } from './components/ControlPanel';
 import { ScreenOverlay } from './components/ScreenOverlay';
-import { LightMode, AmbienceConfig } from './types';
+import { PresetSelector } from './components/PresetSelector';
+import { LightMode, AmbienceConfig, Preset } from './types';
 import { generateAmbience } from './services/geminiService';
 import { useWakeLock } from './hooks/useWakeLock';
 
@@ -180,6 +181,52 @@ const App: React.FC = () => {
     };
   }, [isOn, strobeSpeed, mode, brightness, handleStrobeTick]);
 
+  // --- Helper to apply config ---
+  const applyConfig = (config: AmbienceConfig, forceMode?: LightMode) => {
+    setColor(config.color);
+    setBrightness(config.brightness);
+    
+    // Determine strobe speed from interval
+    if (config.strobeInterval === -1) {
+      setStrobeSpeed(11); // Activate SOS
+    } else if (config.strobeInterval === 0) {
+      setStrobeSpeed(0);
+    } else if (config.strobeInterval < 100) {
+      setStrobeSpeed(10);
+    } else if (config.strobeInterval > 900) {
+      setStrobeSpeed(1);
+    } else {
+      // Map 100-900 to 1-10 roughly
+      const speed = 10 - Math.floor(config.strobeInterval / 100);
+      setStrobeSpeed(Math.max(1, Math.min(10, speed)));
+    }
+
+    // Handle Mode Switching
+    if (forceMode) {
+      setMode(forceMode);
+      // If we are forcing screen mode, ensure hardware torch is off if it was on
+      if (forceMode === LightMode.SCREEN && hasHardwareTorch) {
+        applyHardwareTorch(false);
+      }
+    } else {
+      // Default behavior if not forced: use screen for colors/ambience
+      if (config.strobeInterval === -1) {
+        // SOS generally prefers hardware if available
+         if (hasHardwareTorch) setMode(LightMode.REAR);
+      } else {
+         setMode(LightMode.SCREEN); 
+      }
+    }
+
+    setIsOn(true);
+  };
+
+  // --- Preset Logic ---
+  const handlePresetSelect = (preset: Preset) => {
+    applyConfig(preset.config, preset.forcedMode);
+    setPrompt(''); // Clear manual prompt
+  };
+
   // --- Gemini Ambience ---
   const handleSmartAmbience = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,29 +236,9 @@ const App: React.FC = () => {
 
     try {
       const config = await generateAmbience(prompt);
-      setColor(config.color);
-      setBrightness(config.brightness);
-      
-      // Determine strobe speed from interval
-      if (config.strobeInterval === -1) {
-        setStrobeSpeed(11); // Activate SOS
-      } else if (config.strobeInterval === 0) {
-        setStrobeSpeed(0);
-      } else if (config.strobeInterval < 100) {
-        setStrobeSpeed(10);
-      } else if (config.strobeInterval > 900) {
-        setStrobeSpeed(1);
-      } else {
-        // Map 100-900 to 1-10 roughly
-        const speed = 10 - Math.floor(config.strobeInterval / 100);
-        setStrobeSpeed(Math.max(1, Math.min(10, speed)));
-      }
-
-      setMode(LightMode.SCREEN); // Ambience is best on screen
-      setIsOn(true);
+      applyConfig(config);
     } catch (error) {
       console.error("Failed to generate ambience:", error);
-      // Optional: Flash an error state or simple alert
     } finally {
       setIsThinking(false);
     }
@@ -271,7 +298,7 @@ const App: React.FC = () => {
                 type="text" 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Type 'SOS' or describe a mood..."
+                placeholder="Type 'Thunderstorm' or describe a mood..."
                 className="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all backdrop-blur-md"
               />
               <button 
@@ -283,6 +310,9 @@ const App: React.FC = () => {
               </button>
            </form>
         </div>
+
+        {/* Presets */}
+        <PresetSelector onSelect={handlePresetSelect} />
 
         <ControlPanel 
           mode={mode} 
