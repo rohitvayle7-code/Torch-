@@ -41,17 +41,9 @@ const App: React.FC = () => {
         const capabilities = track.getCapabilities() as any;
         
         // Check specifically for 'torch' capability
-        // Note: some browsers map 'fillLightMode' or simply allow applying advanced constraints without explicit capability signal.
-        // But safer to check. 
-        // iOS Safari does NOT expose 'torch' in capabilities reliably, but often doesn't support it anyway via WebRTC.
         if ('torch' in capabilities || 'fillLightMode' in capabilities) {
           setHasHardwareTorch(true);
         } else {
-          // Fallback check: try to apply it and see if it fails? 
-          // Actually, let's assume if it's a mobile back camera, we might have it.
-          // But for safety in this demo, let's stick to explicit capability or default to screen.
-          // Many modern Android Chrome report 'torch'.
-          // If detection fails, we default to Screen mode which always works.
           setHasHardwareTorch(Boolean(capabilities.torch));
           if (!capabilities.torch) setMode(LightMode.SCREEN);
         }
@@ -149,9 +141,6 @@ const App: React.FC = () => {
     // Strobe is active
     if (strobeSpeed === 11) {
        // SOS Pattern: ... --- ...
-       // S: dot dot dot (short)
-       // O: dash dash dash (long)
-       // S: dot dot dot (short)
        const sosPattern = [
          200, 200, 200, 200, 200, 200, // S (on, off, on, off, on, off)
          600, 200, 600, 200, 600, 200, // O
@@ -220,6 +209,9 @@ const App: React.FC = () => {
 
       setMode(LightMode.SCREEN); // Ambience is best on screen
       setIsOn(true);
+    } catch (error) {
+      console.error("Failed to generate ambience:", error);
+      // Optional: Flash an error state or simple alert
     } finally {
       setIsThinking(false);
     }
@@ -316,7 +308,6 @@ const App: React.FC = () => {
       </footer>
 
       {/* Screen Light Overlay (The actual light source for Screen Mode) */}
-      {/* We use an ID to manipulate opacity directly for strobe performance */}
       <div 
         id="screen-overlay-flash"
         className="fixed inset-0 pointer-events-none z-0" 

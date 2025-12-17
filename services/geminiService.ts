@@ -1,11 +1,19 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { AmbienceConfig } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize with fallback to empty string to prevent instantiation crash if env var is missing
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 export const generateAmbience = async (prompt: string): Promise<AmbienceConfig> => {
+  // Check specifically for valid key before attempting call
   if (!process.env.API_KEY) {
-    throw new Error("API Key is missing");
+    console.warn("API Key is missing. Returning fallback configuration.");
+    return {
+      color: "#ffffff",
+      brightness: 100,
+      strobeInterval: 0,
+      description: "Fallback (No API Key)",
+    };
   }
 
   try {
