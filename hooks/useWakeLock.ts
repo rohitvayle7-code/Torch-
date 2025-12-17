@@ -16,8 +16,10 @@ export const useWakeLock = (enabled: boolean) => {
       }
 
       try {
-        if ('wakeLock' in navigator && !wakeLockRef.current) {
-          const wakeLock = await navigator.wakeLock.request('screen');
+        // Cast to unknown then Navigator to satisfy TypeScript with our custom interface
+        const nav = navigator as unknown as Navigator;
+        if ('wakeLock' in nav && !wakeLockRef.current) {
+          const wakeLock = await nav.wakeLock.request('screen');
           wakeLockRef.current = wakeLock;
           setIsLocked(true);
 

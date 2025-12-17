@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     // Vercel injects env vars at build time. This inlines it for the client.
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+    // Use fallback to avoid build errors if env var is missing
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || "")
   }
 });
