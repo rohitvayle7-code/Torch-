@@ -2,7 +2,6 @@
   "name": "Lumina Torch",
   "description": "An intelligent, aesthetic flashlight application featuring hardware torch control, screen light modes, SOS signaling, and AI-powered mood lighting.",
   "requestFramePermissions": [
-    "camera",
-    "microphone"
+    "camera"
   ]
 }
